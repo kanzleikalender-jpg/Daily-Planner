@@ -50,6 +50,15 @@
 <h2 id="day-name">Today</h2>
 <div class="date" id="day-date"></div>
 
+<div class="urgent-section" style="margin-top:1rem;">
+  <div class="section-label">Urgent tasks</div>
+  <div class="urgent-list" id="urgent-list"></div>
+  <div class="add-row">
+    <input type="text" id="urgent-input" placeholder="Add urgent task..." />
+    <button id="add-btn">Add</button>
+  </div>
+</div>
+
 <div class="section-label">Morning</div>
 <div class="blocks" id="s-morning"></div>
 
@@ -61,15 +70,6 @@
 
 <div class="section-label">Evening</div>
 <div class="blocks" id="s-evening"></div>
-
-<div class="urgent-section">
-  <div class="section-label">Urgent tasks</div>
-  <div class="urgent-list" id="urgent-list"></div>
-  <div class="add-row">
-    <input type="text" id="urgent-input" placeholder="Add urgent task..." />
-    <button id="add-btn">Add</button>
-  </div>
-</div>
 
 <div class="bottom">
   <button class="reset" id="reset-btn">Reset daily checks</button>
