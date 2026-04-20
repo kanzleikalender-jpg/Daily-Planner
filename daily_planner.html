@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Planner</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #f5f4f0; color: #1a1a1a; padding: 1rem; max-width: 640px; margin: 0 auto; }
+  h2 { font-size: 20px; font-weight: 500; margin-bottom: 2px; }
+  .date { font-size: 13px; color: #888; margin-bottom: 1.5rem; }
+  .section-label { font-size: 10px; font-weight: 600; letter-spacing: 0.07em; text-transform: uppercase; color: #aaa; margin: 1.25rem 0 6px; }
+  .blocks { display: flex; flex-direction: column; gap: 3px; }
+  .block { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; background: #fff; border: 1px solid #ebebeb; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+  .block.done { opacity: 0.4; }
+  .block.done .label { text-decoration: line-through; }
+  .block.brk { background: #f5f4f0; border-style: dashed; border-color: #ddd; cursor: default; }
+  .check { width: 17px; height: 17px; border-radius: 4px; border: 1.5px solid #ccc; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
+  .check.on { background: #378ADD; border-color: #378ADD; }
+  .check.on::after { content: ''; display: block; width: 8px; height: 5px; border-left: 2px solid #fff; border-bottom: 2px solid #fff; transform: rotate(-45deg) translateY(-1px); }
+  .check.hide { visibility: hidden; }
+  .time { font-size: 11px; color: #bbb; min-width: 78px; font-variant-numeric: tabular-nums; }
+  .label { font-size: 14px; flex: 1; }
+  .brk .label { font-size: 13px; color: #aaa; }
+  .tag { font-size: 11px; padding: 2px 7px; border-radius: 99px; white-space: nowrap; }
+  .tag-work { background: #deeefb; color: #185fa5; }
+  .tag-body { background: #e5f2d8; color: #3b6d11; }
+  .tag-family { background: #faeeda; color: #854f0b; }
+  .tag-home { background: #efefeb; color: #5f5e5a; }
+  .tag-lang { background: #eeedfe; color: #534ab7; }
+  .urgent-section { margin-top: 1.5rem; }
+  .urgent-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 8px; }
+  .urgent-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; background: #fff5f5; border: 1px solid #fcc; }
+  .urgent-item .label { font-size: 14px; flex: 1; }
+  .dot { width: 6px; height: 6px; border-radius: 50%; background: #e24b4a; flex-shrink: 0; }
+  .del { background: none; border: none; font-size: 18px; color: #e24b4a; cursor: pointer; padding: 0 2px; line-height: 1; }
+  .add-row { display: flex; gap: 6px; margin-top: 6px; }
+  .add-row input { flex: 1; font-size: 14px; padding: 9px 11px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #1a1a1a; outline: none; font-family: inherit; }
+  .add-row input:focus { border-color: #378ADD; }
+  .add-row button { font-size: 13px; padding: 9px 16px; border-radius: 8px; border: 1px solid #ddd; background: #fff; color: #1a1a1a; cursor: pointer; font-family: inherit; }
+  .add-row button:active { background: #f0f0f0; }
+  .bottom { display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem; }
+  .reset { font-size: 12px; color: #bbb; background: none; border: none; cursor: pointer; font-family: inherit; }
+  .reset:active { color: #888; }
+  .saved { font-size: 12px; color: #aaa; }
+</style>
+</head>
+<body>
+
+<h2 id="day-name">Today</h2>
+<div class="date" id="day-date"></div>
+
+<div class="section-label">Morning</div>
+<div class="blocks" id="s-morning"></div>
+
+<div class="section-label">Work blocks</div>
+<div class="blocks" id="s-work"></div>
+
+<div class="section-label">Buffer + family</div>
+<div class="blocks" id="s-buffer"></div>
+
+<div class="section-label">Evening</div>
+<div class="blocks" id="s-evening"></div>
+
+<div class="urgent-section">
+  <div class="section-label">Urgent tasks</div>
+  <div class="urgent-list" id="urgent-list"></div>
+  <div class="add-row">
+    <input type="text" id="urgent-input" placeholder="Add urgent task..." />
+    <button id="add-btn">Add</button>
+  </div>
+</div>
+
+<div class="bottom">
+  <button class="reset" id="reset-btn">Reset daily checks</button>
+  <span class="saved" id="saved-note"></span>
+</div>
+
+<script>
+const BLOCKS = [
+  { id:'b1', s:'morning', time:'04:45–06:30', label:'Run / swim / aerial yoga + strategic thinking', tag:'body', tl:'body' },
+  { id:'brk0', s:'morning', time:'06:30–06:45', label:'Break — coffee, bathroom, get ready', brk:true },
+  { id:'b2', s:'morning', time:'06:45–07:00', label:'Morning admin', tag:'home', tl:'home' },
+  { id:'b3', s:'work', time:'07:00–08:00', label:'Webpage, blog & IDC marketing', tag:'work', tl:'work' },
+  { id:'brk1', s:'work', time:'08:00–08:15', label:'Break', brk:true },
+  { id:'b4', s:'work', time:'08:15–09:15', label:'IDC Exam Coach', tag:'work', tl:'work' },
+  { id:'brk2', s:'work', time:'09:15–09:30', label:'Break', brk:true },
+  { id:'b5', s:'work', time:'09:30–10:30', label:'Italian language', tag:'lang', tl:'language' },
+  { id:'brk3', s:'work', time:'10:30–10:45', label:'Break', brk:true },
+  { id:'b6', s:'work', time:'10:45–11:15', label:'Belongings sorting (30 min)', tag:'home', tl:'home' },
+  { id:'brk4', s:'work', time:'11:15–11:30', label:'Break', brk:true },
+  { id:'b7', s:'work', time:'11:30–12:30', label:'Household (3 topics, pomodoro)', tag:'home', tl:'home' },
+  { id:'b8', s:'buffer', time:'12:30–14:00', label:'Buffer — diving work, Italy research, admin', tag:'work', tl:'work' },
+  { id:'b9', s:'buffer', time:'14:00–16:00', label:'Eating window', tag:'body', tl:'body' },
+  { id:'b10', s:'buffer', time:'15:30–17:30', label:'Protected time with son (after school)', tag:'family', tl:'family' },
+  { id:'b11', s:'evening', time:'17:30–19:00', label:'Wind-down / flexible', tag:'home', tl:'home' },
+  { id:'b12', s:'evening', time:'21:15', label:'Lights out', tag:'body', tl:'body' },
+];
+
+let checks = JSON.parse(localStorage.getItem('planner-checks') || '{}');
+let urgent = JSON.parse(localStorage.getItem('planner-urgent') || '[]');
+
+function saveChecks() { localStorage.setItem('planner-checks', JSON.stringify(checks)); }
+function saveUrgent() { localStorage.setItem('planner-urgent', JSON.stringify(urgent)); flash(); }
+
+function flash() {
+  const n = document.getElementById('saved-note');
+  n.textContent = 'Saved';
+  setTimeout(() => n.textContent = '', 1200);
+}
+
+function renderBlocks() {
+  ['morning','work','buffer','evening'].forEach(sec => {
+    const el = document.getElementById('s-' + sec);
+    el.innerHTML = '';
+    BLOCKS.filter(b => b.s === sec).forEach(b => {
+      const done = !b.brk && !!checks[b.id];
+      const div = document.createElement('div');
+      div.className = 'block' + (b.brk ? ' brk' : '') + (done ? ' done' : '');
+      div.innerHTML = `
+        <div class="check ${b.brk ? 'hide' : done ? 'on' : ''}"></div>
+        <span class="time">${b.time}</span>
+        <span class="label">${b.label}</span>
+        ${!b.brk ? `<span class="tag tag-${b.tag}">${b.tl}</span>` : ''}
+      `;
+      if (!b.brk) div.addEventListener('click', () => {
+        checks[b.id] = !checks[b.id];
+        saveChecks();
+        renderBlocks();
+      });
+      el.appendChild(div);
+    });
+  });
+}
+
+function renderUrgent() {
+  const el = document.getElementById('urgent-list');
+  el.innerHTML = '';
+  urgent.forEach((t, i) => {
+    const div = document.createElement('div');
+    div.className = 'urgent-item';
+    div.innerHTML = `<div class="dot"></div><span class="label">${t}</span><button class="del" data-i="${i}">×</button>`;
+    div.querySelector('.del').addEventListener('click', () => { urgent.splice(i, 1); saveUrgent(); renderUrgent(); });
+    el.appendChild(div);
+  });
+}
+
+function setDate() {
+  const d = new Date();
+  const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('day-name').textContent = days[d.getDay()];
+  document.getElementById('day-date').textContent = `${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+document.getElementById('add-btn').addEventListener('click', () => {
+  const inp = document.getElementById('urgent-input');
+  const v = inp.value.trim();
+  if (!v) return;
+  urgent.push(v);
+  inp.value = '';
+  saveUrgent();
+  renderUrgent();
+});
+
+document.getElementById('urgent-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') document.getElementById('add-btn').click();
+});
+
+document.getElementById('reset-btn').addEventListener('click', () => {
+  checks = {};
+  saveChecks();
+  renderBlocks();
+});
+
+setDate();
+renderBlocks();
+renderUrgent();
+</script>
+</body>
+</html>
